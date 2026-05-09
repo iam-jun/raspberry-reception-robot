@@ -1,0 +1,21 @@
+stt:
+  command: services/stt/run_stt.sh
+
+rag:
+  endpoint: null
+  command: services/rag/ask.py
+
+tts:
+  command: services/tts/run_tts.sh
+
+storage:
+  vector_db: storage/vector_db
+  audio: storage/audio
+  logs: storage/logs
+
+timeouts:
+  stt_seconds: 30
+  rag_seconds: 30
+  tts_seconds: 30
+  request_seconds: 90
+

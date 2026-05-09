@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build folders and CMake artifacts
+build/
+**/build/
+CMakeFiles/
+**/CMakeFiles/
+CMakeCache.txt
+**/CMakeCache.txt
+cmake_install.cmake
+**/cmake_install.cmake
+compile_commands.json
+**/compile_commands.json
+
+# Logs
+*.log
+storage/logs/*
+!storage/logs/.gitkeep
+
+# Generated audio
+storage/audio/*
+!storage/audio/.gitkeep
+
+# Generated vector database files
+storage/vector_db/*
+!storage/vector_db/.gitkeep
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,325 @@
+tôi
+bạn
+anh
+chị
+em
+chúng tôi
+chúng ta
+người dùng
+thiết bị
+hệ thống
+ứng dụng
+phần mềm
+mô hình
+dữ liệu
+âm thanh
+giọng nói
+văn bản
+nhận diện
+xác thực
+kiểm tra
+khởi động
+dừng lại
+bắt đầu
+tiếp tục
+ghi âm
+thu âm
+micro
+loa
+tai nghe
+tín hiệu
+nhiễu
+lọc nhiễu
+tạp âm
+âm nền
+giọng người
+độ chính xác
+thời gian thực
+realtime
+stream
+pipeline
+server
+client
+api
+raspberry
+linux
+thiết bị kết nối
+trạng thái
+sẵn sàng
+đang nghe
+đang xử lý
+đang chạy
+đã dừng
+hoàn tất
+lỗi
+cảnh báo
+thành công
+thất bại
+đăng nhập
+đăng xuất
+tài khoản
+mật khẩu
+mã xác thực
+mã thiết bị
+mã người dùng
+xác minh
+ủy quyền
+kết nối
+ngắt kết nối
+mạng
+wifi
+bluetooth
+cổng
+địa chỉ
+máy chủ
+dịch vụ
+cấu hình
+cài đặt
+tùy chọn
+chế độ
+ngôn ngữ
+tiếng Việt
+tiếng Anh
+phiên làm việc
+phiên thu
+phiên nhận diện
+bật
+tắt
+mở
+đóng
+chạy
+dừng
+nghe
+nói
+đọc
+ghi
+gửi
+nhận
+lưu
+xóa
+sửa
+cập nhật
+tải lên
+tải xuống
+đồng bộ
+khôi phục
+thiết lập
+kiểm tra lại
+thử lại
+xác nhận
+hủy bỏ
+đồng ý
+không đồng ý
+có
+không
+đúng
+sai
+tiếp theo
+quay lại
+trước đó
+sau đó
+hôm nay
+ngày mai
+hôm qua
+bây giờ
+hiện tại
+lúc này
+vui lòng
+làm ơn
+cảm ơn
+xin chào
+tạm biệt
+mở ứng dụng
+đóng ứng dụng
+bắt đầu thu
+dừng thu
+bắt đầu nghe
+dừng nghe
+bắt đầu nhận diện
+dừng nhận diện
+kiểm tra giọng nói
+xác thực giọng nói
+nhận diện giọng nói
+chuyển giọng nói thành văn bản
+speech to text
+voice verification
+asr
+vad
+noise suppression
+hotword
+model
+debug
+demo
+test
+build
+release
+package
+deploy
+log
+metric
+memory
+ram
+cpu
+thread
+queue
+callback
+buffer
+sample rate
+sixteen kilohertz
+mười sáu kilohertz
+mono
+pcm
+float
+int sixteen
+start
+stop
+reset
+load
+unload
+listen
+streaming
+ready
+error
+final
+partial
+transcript
+ngân hàng
+thanh toán
+hóa đơn
+đơn hàng
+sản phẩm
+khách hàng
+nhân viên
+quản lý
+báo cáo
+thống kê
+danh sách
+thông tin
+hồ sơ
+tài liệu
+biểu mẫu
+quy trình
+nhiệm vụ
+công việc
+dự án
+kế hoạch
+tiến độ
+chất lượng
+an toàn
+bảo mật
+quyền truy cập
+vai trò
+nhóm
+phòng ban
+chi nhánh
+khu vực
+vị trí
+địa điểm
+thời gian
+ngày tháng
+giờ
+phút
+giây
+sáng
+trưa
+chiều
+tối
+ban đêm
+số một
+số hai
+số ba
+số bốn
+số năm
+số sáu
+số bảy
+số tám
+số chín
+số không
+một
+hai
+ba
+bốn
+năm
+sáu
+bảy
+tám
+chín
+không
+mười
+một trăm
+một nghìn
+triệu
+tỷ
+phần trăm
+nhiệt độ
+độ ẩm
+áp suất
+tốc độ
+dung lượng
+pin
+nguồn điện
+cảm biến
+camera
+màn hình
+bàn phím
+chuột
+máy tính
+điện thoại
+máy in
+đèn
+cửa
+khóa
+động cơ
+robot
+xe
+nhà
+văn phòng
+nhà máy
+kho
+phòng họp
+phòng điều khiển
+trung tâm
+bật đèn
+tắt đèn
+mở cửa
+đóng cửa
+khóa cửa
+mở khóa
+tăng âm lượng
+giảm âm lượng
+bật camera
+tắt camera
+kiểm tra trạng thái
+báo cáo lỗi
+gửi yêu cầu
+xử lý yêu cầu
+hoàn thành yêu cầu
+khởi động lại
+restart
+shutdown
+login
+logout
+password
+token
+device
+gateway
+sensor
+database
+backend
+frontend
+firmware
+hardware
+software
+driver
+service
+endpoint
+request
+response
+timeout
+retry
+success
+failed
+connected
+disconnected
+online
+offline
