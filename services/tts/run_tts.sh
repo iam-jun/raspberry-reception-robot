@@ -8,8 +8,11 @@ if [ -z "${TEXT}" ]; then
   exit 1
 fi
 
-# TODO: Replace this with the piper command once the voice model is selected.
-# Example shape:
-#   echo "${TEXT}" | piper --model models/tts/voice.onnx --output_file storage/audio/answer.wav
-echo "TTS placeholder. Text received: ${TEXT}"
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+python3 - <<'PY' "${TEXT}"
+import sys
+from services.tts.service import TtsService
 
+result = TtsService().synthesize(sys.argv[1])
+print(result)
+PY

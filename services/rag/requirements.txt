@@ -1,3 +1,6 @@
 pydantic
-PyYAML
-
+python-dotenv
+openai
+numpy
+chromadb
+pypdf

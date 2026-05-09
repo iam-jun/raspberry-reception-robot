@@ -1,66 +1,165 @@
 # Smart Reception Robot
 
-Smart Reception Robot is a Raspberry Pi 5 project for a touch-screen reception assistant. The system is organized as multiple services so speech recognition, retrieval, answer generation, speech output, and UI workflows can evolve independently.
+Smart Reception Robot is a Raspberry Pi 5 touch-screen reception assistant. The current MVP runs a local FastAPI orchestrator and static browser UI, with local document retrieval, local STT integration hooks, OpenAI answer generation, OpenAI TTS, and lightweight camera face/emotion sampling.
 
-## Architecture
-
-The intended request flow is:
+## MVP Architecture
 
 ```text
-UI -> Orchestrator -> STT -> RAG -> TTS
+Touch UI -> Orchestrator API -> STT wrapper -> RAG -> OpenAI chat -> OpenAI TTS
+                                    |
+                                    -> Vision face/emotion snapshot
 ```
 
-## Modules
+Main folders:
 
-- `apps/ui`: Touch-screen interaction. The UI should capture user actions, display the current question and answer, and call the orchestrator endpoints.
-- `services/orchestrator`: Workflow coordination. It exposes the development API and will call STT, RAG, and TTS components.
-- `services/stt`: Speech-to-text. This uses the existing sherpa-onnx ASR SDK now located at `services/stt/asr-sdk`.
-- `services/rag`: Document ingestion, retrieval, and answer generation.
-- `services/tts`: Text-to-speech. This will turn answers into audio files for speaker playback.
-- `models`: Project-level model storage for STT, VAD, embeddings, and TTS assets.
-- `documents/source`: Source documents for RAG ingestion.
-- `storage`: Generated vector databases, audio files, and logs.
+- `apps/ui`: touch-screen web UI served by FastAPI.
+- `services/orchestrator`: FastAPI workflow API.
+- `services/stt`: sherpa-onnx STT wrapper and existing `asr-sdk`.
+- `services/rag`: document loading, chunking, retrieval, and answer generation.
+- `services/tts`: OpenAI TTS audio generation.
+- `services/vision`: camera capture, face detection, and MVP emotion fallback.
+- `documents/source`: source `.txt`, `.md`, and `.pdf` files for RAG.
+- `storage/vector_db`: generated vector index files.
+- `storage/audio`: generated TTS audio and temporary voice recordings.
 
-## MVP Phases
+## Raspberry Pi 5 Setup
 
-1. Button -> record fixed duration -> STT -> show text.
-2. STT text -> RAG -> show answer.
-3. Answer -> TTS -> speaker.
-4. Add VAD and better conversation handling.
-
-## Build STT SDK on Raspberry Pi 5
+Install Python dependencies:
 
 ```bash
-cd services/stt/asr-sdk
-mkdir -p build
-cd build
-cmake ..
-make -j4
-```
-
-Generated binaries will be under the SDK build output. Check `services/stt/asr-sdk/README_RASPBERRY_SDK.md` and the CMake output for exact target names.
-
-Before using microphone input, validate STT with a known WAV file. The wrapper at `services/stt/run_stt.sh` is a scaffold for wiring the exact SDK binary once confirmed.
-
-## Run Orchestrator in Development
-
-Create and activate a Python environment, then install dependencies:
-
-```bash
-cd services/orchestrator
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-From the repository root, start the development server:
+On Raspberry Pi OS, camera and OpenCV support may be better from apt packages:
+
+```bash
+sudo apt update
+sudo apt install -y alsa-utils python3-opencv python3-picamera2
+```
+
+If you use apt-provided `cv2` or `picamera2`, make sure your virtual environment can see system site packages or install the Python packages in the active environment.
+
+## Configure
+
+Copy the example environment file and edit it:
+
+```bash
+cp .env.example .env
+```
+
+Important values:
+
+- `OPENAI_API_KEY`: required for OpenAI embeddings, chat answers, and TTS audio.
+- `OPENAI_CHAT_MODEL`: default `gpt-4o-mini`.
+- `OPENAI_TTS_MODEL`: default `gpt-4o-mini-tts`.
+- `OPENAI_TTS_VOICE`: default `coral`.
+- `STT_BINARY`: path to the built sherpa ASR example binary, usually `services/stt/asr-sdk/build/asr_from_wav`.
+- `STT_MODEL_DIR`: ASR SDK root, default `services/stt/asr-sdk`.
+- `VISION_ENABLED`: set `false` to disable camera sampling.
+- `CAMERA_INDEX`: OpenCV camera index, default `0`.
+
+Without `OPENAI_API_KEY`, the app still starts and can ingest/retrieve documents with a local fallback embedding. It will return an explicit message instead of generating a final OpenAI answer or TTS file.
+
+## Build STT SDK
+
+The existing ASR SDK is kept under `services/stt/asr-sdk` and is not rewritten by the Python MVP. Build the example binary on the Pi:
+
+```bash
+cd services/stt/asr-sdk
+mkdir -p build
+cd build
+cmake .. -DASR_ENGINE_BUILD_EXAMPLES=ON -DSHERPA_ONNX_ROOT=/path/to/sherpa-onnx-linux-aarch64
+make -j4
+```
+
+Validate with a known mono 16 kHz WAV:
+
+```bash
+services/stt/run_stt.sh services/stt/asr-sdk/models/sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10/test_wavs/en.wav
+```
+
+The Python wrapper expects the ASR binary interface used by `asr_from_wav`:
+
+```text
+asr_from_wav <asr-sdk-root> <mono-16k-wav>
+```
+
+## Ingest Documents
+
+Put `.txt`, `.md`, or `.pdf` files into `documents/source`, then start the orchestrator and ingest:
+
+```bash
+scripts/run_dev.sh
+scripts/ingest_documents.sh
+```
+
+You can also ingest directly:
+
+```bash
+python3 services/rag/ingest.py
+```
+
+The vector index is written under `storage/vector_db`. ChromaDB is used when available; a small JSON index is also persisted as a fallback.
+
+## Run Orchestrator and UI
 
 ```bash
 scripts/run_dev.sh
 ```
 
-The API exposes:
+Open the UI from the Pi browser:
 
-- `GET /health`
-- `POST /ask` with JSON body `{ "question": "..." }`
+```text
+http://localhost:8000
+```
 
+From another device on the same network, use the Pi IP address:
+
+```text
+http://<raspberry-pi-ip>:8000
+```
+
+## API Endpoints
+
+- `GET /health`: status for orchestrator, STT, RAG, TTS, and vision.
+- `POST /ask`: typed question flow.
+- `POST /voice/ask`: records 5 seconds by default or accepts uploaded WAV/audio bytes.
+- `POST /documents/ingest`: ingests `documents/source`.
+- `GET /documents`: lists source documents and ingestion state.
+- `GET /audio/{filename}`: serves generated OpenAI TTS audio.
+- `GET /vision/emotion`: captures and returns the latest face/emotion result.
+
+Typed ask test:
+
+```bash
+scripts/test_ask.sh "What can visitors ask the reception assistant?"
+```
+
+Voice test with server-side recording:
+
+```bash
+scripts/test_voice.sh
+```
+
+Voice test with a WAV upload:
+
+```bash
+scripts/test_voice.sh path/to/question.wav
+```
+
+Camera/emotion test:
+
+```bash
+curl http://127.0.0.1:8000/vision/emotion
+```
+
+## Current Limitations
+
+- STT depends on the local sherpa-onnx SDK build, model files, and a mono 16 kHz WAV input path.
+- Server-side microphone recording requires ALSA `arecord` or the `sounddevice` Python package.
+- TTS uses the OpenAI API and is skipped when `OPENAI_API_KEY` is missing.
+- OpenAI chat answer generation is required for final natural-language answers.
+- Emotion detection is intentionally lightweight: it detects face presence and returns `neutral` for detected faces until a small real emotion model is added.
+- Speaker playback is handled by the browser audio control in the MVP; system-level speaker playback can be added later.

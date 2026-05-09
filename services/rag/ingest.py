@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import sys
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DOCUMENTS_DIR = REPO_ROOT / "documents" / "source"
-VECTOR_DB_DIR = REPO_ROOT / "storage" / "vector_db"
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from services.rag.service import RagService  # noqa: E402
 
 
 def main() -> None:
-    print(f"Preparing to ingest documents from: {DOCUMENTS_DIR}")
-    print(f"Vector index output directory: {VECTOR_DB_DIR}")
-    # TODO: Add document loading and chunking.
-    # TODO: Add embedding model integration.
-    # TODO: Add vector store creation/update.
+    result = RagService().ingest_documents()
+    print(json.dumps(result.__dict__, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
     main()
-

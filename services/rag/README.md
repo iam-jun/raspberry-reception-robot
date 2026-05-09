@@ -1,11 +1,18 @@
 # RAG Service
 
-This module will ingest documents, build a retrieval index, and answer questions using retrieved context.
+This module ingests `.txt`, `.md`, and `.pdf` files from `documents/source`, chunks them, embeds them, and persists a local retrieval index under `storage/vector_db`.
 
-- `documents/source`: Source documents to ingest.
-- `storage/vector_db`: Generated vector index storage.
-- `ingest.py`: Builds or updates the index.
-- `ask.py`: Answers a question from the index.
+`service.py` exposes:
 
-Current scripts are placeholders for the MVP scaffold.
+- `ingest_documents()`
+- `retrieve(question, top_k=4)`
+- `generate_answer(question, contexts)`
 
+OpenAI embeddings are used when `OPENAI_API_KEY` is configured. Without a key, ingestion falls back to a small local hash embedding so local endpoint testing can still run.
+
+Run directly:
+
+```bash
+python3 services/rag/ingest.py
+python3 services/rag/ask.py --question "What can visitors ask?"
+```

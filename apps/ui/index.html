@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Smart Reception</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar">
+        <div>
+          <h1>Smart Reception</h1>
+          <p id="statusText">Checking system status...</p>
+        </div>
+        <button id="refreshStatusButton" class="icon-button" type="button" aria-label="Refresh status" title="Refresh status">↻</button>
+      </section>
+
+      <section class="status-grid" id="statusGrid" aria-live="polite"></section>
+
+      <section class="controls">
+        <button id="ingestButton" class="secondary" type="button">Ingest Documents</button>
+        <button id="voiceButton" class="primary" type="button">Ask by Voice</button>
+      </section>
+
+      <section class="ask-panel">
+        <label for="questionInput">Question</label>
+        <div class="ask-row">
+          <textarea id="questionInput" rows="3" placeholder="Type a question or enter Vietnamese text..."></textarea>
+          <button id="askButton" class="primary" type="button">Ask</button>
+        </div>
+      </section>
+
+      <section class="result-layout">
+        <article class="result-panel">
+          <h2>Conversation</h2>
+          <dl>
+            <dt>Transcription</dt>
+            <dd id="transcriptionText">-</dd>
+            <dt>Question</dt>
+            <dd id="questionText">-</dd>
+            <dt>Answer</dt>
+            <dd id="answerText">-</dd>
+          </dl>
+          <audio id="answerAudio" controls hidden></audio>
+        </article>
+
+        <article class="result-panel">
+          <h2>Context</h2>
+          <div id="sourcesList" class="sources-list">No sources yet.</div>
+        </article>
+
+        <article class="result-panel">
+          <h2>Customer Emotion</h2>
+          <div id="emotionText" class="emotion">unknown</div>
+          <p id="emotionDetail">No camera sample yet.</p>
+        </article>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

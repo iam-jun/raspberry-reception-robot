@@ -1,0 +1,7 @@
+Smart Reception Robot sample document.
+
+Visitors can ask the reception assistant for general guidance, directions, and basic information from uploaded documents.
+
+For this MVP, document answers are generated from files placed in documents/source and ingested into the local vector index.
+
+The reception assistant supports English and Vietnamese questions when the configured OpenAI model can answer them from the retrieved document context.

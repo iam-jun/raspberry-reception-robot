@@ -10,19 +10,23 @@ if [ ! -d "${ASR_SDK_DIR}" ]; then
   exit 1
 fi
 
-if [ ! -d "${BUILD_DIR}" ]; then
+if [ -z "${STT_BINARY:-}" ] && [ ! -d "${BUILD_DIR}" ]; then
   echo "ASR SDK is not built yet."
   echo "Build it with:"
   echo "  cd services/stt/asr-sdk"
   echo "  mkdir -p build"
   echo "  cd build"
-  echo "  cmake .."
+  echo "  cmake .. -DASR_ENGINE_BUILD_EXAMPLES=ON"
   echo "  make -j4"
   exit 1
 fi
 
-# TODO: Replace this with the exact ASR binary name and arguments after confirming
-# the generated target in services/stt/asr-sdk/build.
-echo "STT wrapper scaffold. ASR SDK build directory: ${BUILD_DIR}"
-echo "TODO: run the correct ASR SDK binary with WAV or microphone input."
+WAV_PATH="${1:-}"
 
+if [ -z "${WAV_PATH}" ]; then
+  echo "Usage: services/stt/run_stt.sh path/to/mono-16khz.wav" >&2
+  exit 1
+fi
+
+cd "${SCRIPT_DIR}/../.."
+python3 -m services.stt.wrapper "${WAV_PATH}"

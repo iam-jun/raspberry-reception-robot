@@ -1,11 +1,15 @@
 # TTS Service
 
-This module handles text-to-speech. It is separate from STT/ASR.
+This module handles text-to-speech. It is separate from STT/ASR and uses the OpenAI TTS API for the MVP.
 
-Recommended future engine: `piper-tts` or another lightweight Raspberry Pi friendly TTS engine.
+- Input: answer text.
+- Output: MP3 file under `storage/audio`.
+- Config: `OPENAI_API_KEY`, `OPENAI_TTS_MODEL`, `OPENAI_TTS_VOICE`, `AUDIO_OUTPUT_DIR`.
 
-- Input: text.
-- Output: WAV file under `storage/audio`.
+No local TTS model is required on Raspberry Pi. If `OPENAI_API_KEY` is missing, the service returns a clear skipped reason and the orchestrator still returns the text answer.
 
-`run_tts.sh` is currently a scaffold.
+Run directly:
 
+```bash
+services/tts/run_tts.sh "Hello, welcome to the reception desk."
+```

@@ -1,12 +1,12 @@
 # UI App
 
-This folder will contain the touch-screen UI for the Smart Reception Robot.
+This folder contains the static touch-screen UI served by the orchestrator at `/`.
 
-The UI should call the orchestrator service endpoints instead of talking directly to STT, RAG, or TTS. The initial flow is:
+The UI calls orchestrator endpoints only:
 
-```text
-button press -> call /ask -> display question and answer
-```
+- `GET /health`
+- `POST /documents/ingest`
+- `POST /ask`
+- `POST /voice/ask`
 
-For now this module is a placeholder only.
-
+It shows typed or transcribed questions, answers, sources, emotion status, and the generated audio playback control.

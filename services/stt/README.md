@@ -24,5 +24,21 @@ Generated binaries should appear in the SDK build output. Check the CMake output
 
 ## Run Strategy
 
-Validate with a WAV file first before wiring microphone capture. Once the correct SDK binary and arguments are confirmed, update `services/stt/run_stt.sh`.
+Validate with a WAV file first before wiring microphone capture:
 
+```bash
+services/stt/run_stt.sh path/to/mono-16khz.wav
+```
+
+The Python wrapper in `wrapper.py` exposes:
+
+- `transcribe_wav(path: str) -> str`
+- `record_audio(duration_seconds: int, output_path: str) -> str`
+
+Config:
+
+- `STT_BINARY`: ASR executable path, for example `services/stt/asr-sdk/build/asr_from_wav`.
+- `STT_MODEL_DIR`: ASR SDK root containing the `models` directory.
+- `STT_SAMPLE_RATE`: default `16000`.
+
+The wrapper does not modify the existing C++ SDK. It shells out to the configured binary and extracts `final:` transcript lines from stdout.
