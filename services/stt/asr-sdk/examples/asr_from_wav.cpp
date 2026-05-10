@@ -1,6 +1,7 @@
 #include "asr/AsrEngine.h"
 
 #include <chrono>
+#include <cstdlib>
 #include <cstdint>
 #include <cstring>
 #include <exception>
@@ -13,11 +14,25 @@
 
 namespace {
 
+bool env_flag_enabled(const char* name) {
+    const char* value = std::getenv(name);
+    if (value == nullptr) {
+        return false;
+    }
+    return std::strcmp(value, "1") == 0 ||
+           std::strcmp(value, "true") == 0 ||
+           std::strcmp(value, "TRUE") == 0 ||
+           std::strcmp(value, "yes") == 0 ||
+           std::strcmp(value, "YES") == 0;
+}
+
 asr::AsrConfig make_config(const std::filesystem::path& package_root) {
     asr::AsrConfig config;
     config.model_dir = package_root / "models" / "sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10";
     config.denoiser_model = package_root / "models" / "sherpa-official-ns-vad" / "gtcrn_simple.onnx";
     config.vad_model = package_root / "models" / "sherpa-official-ns-vad" / "silero_vad.onnx";
+    config.enable_denoiser = !env_flag_enabled("ASR_DISABLE_DENOISER");
+    config.enable_vad = !env_flag_enabled("ASR_DISABLE_VAD");
     const auto hotwords = package_root / "hotwords" / "hotwords_vi.txt";
     const auto bpe_vocab = package_root / "models" / "sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10" / "bpe.vocab";
     if (std::filesystem::exists(hotwords) && std::filesystem::exists(bpe_vocab)) {
@@ -128,10 +143,10 @@ int main(int argc, char* argv[]) {
 
     asr::AsrEngine engine(make_config(package_root));
     engine.set_callbacks({
-        [](const std::string& text) { std::cout << "partial: " << text << '\n'; },
-        [](const std::string& text) { std::cout << "final: " << text << '\n'; },
+        [](const std::string& text) { std::cout << "partial: " << text << std::endl; },
+        [](const std::string& text) { std::cout << "final: " << text << std::endl; },
         [](asr::AsrStatus status, const std::string& message) {
-            std::cout << "status: " << asr::to_string(status) << " - " << message << '\n';
+            std::cout << "status: " << asr::to_string(status) << " - " << message << std::endl;
         },
         {}
     });
