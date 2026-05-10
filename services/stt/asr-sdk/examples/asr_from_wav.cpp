@@ -1,8 +1,10 @@
 #include "asr/AsrEngine.h"
-#include "sherpa-onnx/c-api/cxx-api.h"
 
 #include <chrono>
+#include <cstdint>
+#include <cstring>
 #include <exception>
+#include <fstream>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -25,6 +27,88 @@ asr::AsrConfig make_config(const std::filesystem::path& package_root) {
     return config;
 }
 
+struct WaveData {
+    int sample_rate = 0;
+    std::vector<float> samples;
+};
+
+std::uint32_t read_u32(std::ifstream& input) {
+    std::uint8_t bytes[4] = {};
+    input.read(reinterpret_cast<char*>(bytes), sizeof(bytes));
+    return static_cast<std::uint32_t>(bytes[0]) |
+           (static_cast<std::uint32_t>(bytes[1]) << 8U) |
+           (static_cast<std::uint32_t>(bytes[2]) << 16U) |
+           (static_cast<std::uint32_t>(bytes[3]) << 24U);
+}
+
+std::uint16_t read_u16(std::ifstream& input) {
+    std::uint8_t bytes[2] = {};
+    input.read(reinterpret_cast<char*>(bytes), sizeof(bytes));
+    return static_cast<std::uint16_t>(bytes[0]) |
+           static_cast<std::uint16_t>(bytes[1] << 8U);
+}
+
+WaveData read_wave_mono_16k(const std::filesystem::path& wav_path) {
+    std::ifstream input(wav_path, std::ios::binary);
+    if (!input) {
+        throw std::runtime_error("Unable to open WAV file: " + wav_path.u8string());
+    }
+
+    char riff[4] = {};
+    input.read(riff, sizeof(riff));
+    (void)read_u32(input);
+    char wave_tag[4] = {};
+    input.read(wave_tag, sizeof(wave_tag));
+    if (std::strncmp(riff, "RIFF", 4) != 0 || std::strncmp(wave_tag, "WAVE", 4) != 0) {
+        throw std::runtime_error("Expected a RIFF/WAVE file: " + wav_path.u8string());
+    }
+
+    std::uint16_t audio_format = 0;
+    std::uint16_t channels = 0;
+    std::uint32_t sample_rate = 0;
+    std::uint16_t bits_per_sample = 0;
+    std::vector<char> pcm_data;
+
+    while (input && (!audio_format || pcm_data.empty())) {
+        char chunk_id[4] = {};
+        input.read(chunk_id, sizeof(chunk_id));
+        if (!input) {
+            break;
+        }
+        const auto chunk_size = read_u32(input);
+        const auto next_chunk = input.tellg() + static_cast<std::streamoff>(chunk_size);
+
+        if (std::strncmp(chunk_id, "fmt ", 4) == 0) {
+            audio_format = read_u16(input);
+            channels = read_u16(input);
+            sample_rate = read_u32(input);
+            (void)read_u32(input); // byte rate
+            (void)read_u16(input); // block align
+            bits_per_sample = read_u16(input);
+        } else if (std::strncmp(chunk_id, "data", 4) == 0) {
+            pcm_data.resize(chunk_size);
+            input.read(pcm_data.data(), static_cast<std::streamsize>(pcm_data.size()));
+        }
+
+        input.seekg(next_chunk);
+    }
+
+    if (audio_format != 1 || channels != 1 || sample_rate != 16000 || bits_per_sample != 16) {
+        throw std::runtime_error("Expected PCM signed-16 mono 16 kHz WAV: " + wav_path.u8string());
+    }
+
+    WaveData wave;
+    wave.sample_rate = static_cast<int>(sample_rate);
+    wave.samples.reserve(pcm_data.size() / sizeof(std::int16_t));
+    for (std::size_t offset = 0; offset + 1 < pcm_data.size(); offset += 2) {
+        const auto lo = static_cast<std::uint8_t>(pcm_data[offset]);
+        const auto hi = static_cast<std::uint8_t>(pcm_data[offset + 1]);
+        const auto sample = static_cast<std::int16_t>(lo | static_cast<std::uint16_t>(hi << 8U));
+        wave.samples.push_back(static_cast<float>(sample) / 32768.0F);
+    }
+    return wave;
+}
+
 } // namespace
 
 int main(int argc, char* argv[]) {
@@ -36,7 +120,7 @@ int main(int argc, char* argv[]) {
 
     const std::filesystem::path package_root = argv[1];
     const std::filesystem::path wav_path = argv[2];
-    const auto wave = sherpa_onnx::cxx::ReadWave(wav_path.u8string());
+    const auto wave = read_wave_mono_16k(wav_path);
     if (wave.samples.empty() || wave.sample_rate != 16000) {
         std::cerr << "Expected a readable mono 16 kHz WAV: " << wav_path.u8string() << '\n';
         return 2;
