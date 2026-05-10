@@ -1,18 +1,28 @@
-#include "asr/AsrEngine.h"
+#include "sherpa-onnx/c-api/c-api.h"
 
-#include <chrono>
-#include <cstdlib>
+#include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <exception>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
-#include <thread>
 #include <vector>
 
 namespace {
+
+struct WaveData {
+    int sample_rate = 0;
+    std::vector<float> samples;
+};
+
+const char* env_or_default(const char* name, const char* fallback) {
+    const char* value = std::getenv(name);
+    return value != nullptr && value[0] != '\0' ? value : fallback;
+}
 
 bool env_flag_enabled(const char* name) {
     const char* value = std::getenv(name);
@@ -25,27 +35,6 @@ bool env_flag_enabled(const char* name) {
            std::strcmp(value, "yes") == 0 ||
            std::strcmp(value, "YES") == 0;
 }
-
-asr::AsrConfig make_config(const std::filesystem::path& package_root) {
-    asr::AsrConfig config;
-    config.model_dir = package_root / "models" / "sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10";
-    config.denoiser_model = package_root / "models" / "sherpa-official-ns-vad" / "gtcrn_simple.onnx";
-    config.vad_model = package_root / "models" / "sherpa-official-ns-vad" / "silero_vad.onnx";
-    config.enable_denoiser = !env_flag_enabled("ASR_DISABLE_DENOISER");
-    config.enable_vad = !env_flag_enabled("ASR_DISABLE_VAD");
-    const auto hotwords = package_root / "hotwords" / "hotwords_vi.txt";
-    const auto bpe_vocab = package_root / "models" / "sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10" / "bpe.vocab";
-    if (std::filesystem::exists(hotwords) && std::filesystem::exists(bpe_vocab)) {
-        config.hotwords_file = hotwords;
-        config.bpe_vocab = bpe_vocab;
-    }
-    return config;
-}
-
-struct WaveData {
-    int sample_rate = 0;
-    std::vector<float> samples;
-};
 
 std::uint32_t read_u32(std::ifstream& input) {
     std::uint8_t bytes[4] = {};
@@ -61,6 +50,12 @@ std::uint16_t read_u16(std::ifstream& input) {
     input.read(reinterpret_cast<char*>(bytes), sizeof(bytes));
     return static_cast<std::uint16_t>(bytes[0]) |
            static_cast<std::uint16_t>(bytes[1] << 8U);
+}
+
+void require_file(const std::filesystem::path& path, const char* label) {
+    if (path.empty() || !std::filesystem::exists(path)) {
+        throw std::runtime_error(std::string("Missing ") + label + ": " + path.u8string());
+    }
 }
 
 WaveData read_wave_mono_16k(const std::filesystem::path& wav_path) {
@@ -97,8 +92,8 @@ WaveData read_wave_mono_16k(const std::filesystem::path& wav_path) {
             audio_format = read_u16(input);
             channels = read_u16(input);
             sample_rate = read_u32(input);
-            (void)read_u32(input); // byte rate
-            (void)read_u16(input); // block align
+            (void)read_u32(input);
+            (void)read_u16(input);
             bits_per_sample = read_u16(input);
         } else if (std::strncmp(chunk_id, "data", 4) == 0) {
             pcm_data.resize(chunk_size);
@@ -128,46 +123,93 @@ WaveData read_wave_mono_16k(const std::filesystem::path& wav_path) {
 
 int main(int argc, char* argv[]) {
     try {
-    if (argc < 3) {
-        std::cerr << "Usage: asr_from_wav <asr-sdk-root> <mono-16k-wav>\n";
-        return 2;
-    }
+        if (argc < 3) {
+            std::cerr << "Usage: asr_from_wav <asr-sdk-root> <mono-16k-wav>\n";
+            return 2;
+        }
 
-    const std::filesystem::path package_root = argv[1];
-    const std::filesystem::path wav_path = argv[2];
-    const auto wave = read_wave_mono_16k(wav_path);
-    if (wave.samples.empty() || wave.sample_rate != 16000) {
-        std::cerr << "Expected a readable mono 16 kHz WAV: " << wav_path.u8string() << '\n';
-        return 2;
-    }
+        const std::filesystem::path package_root = argv[1];
+        const std::filesystem::path wav_path = argv[2];
+        const auto model_dir = package_root / "models" / "sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10";
+        const auto encoder = model_dir / "encoder-epoch-75-avg-11-chunk-16-left-128.int8.onnx";
+        const auto decoder = model_dir / "decoder-epoch-75-avg-11-chunk-16-left-128.onnx";
+        const auto joiner = model_dir / "joiner-epoch-75-avg-11-chunk-16-left-128.int8.onnx";
+        const auto tokens = model_dir / "tokens.txt";
 
-    asr::AsrEngine engine(make_config(package_root));
-    engine.set_callbacks({
-        [](const std::string& text) { std::cout << "partial: " << text << std::endl; },
-        [](const std::string& text) { std::cout << "final: " << text << std::endl; },
-        [](asr::AsrStatus status, const std::string& message) {
-            std::cout << "status: " << asr::to_string(status) << " - " << message << std::endl;
-        },
-        {}
-    });
+        require_file(encoder, "encoder");
+        require_file(decoder, "decoder");
+        require_file(joiner, "joiner");
+        require_file(tokens, "tokens");
 
-    engine.load();          // Loads ASR/NS/VAD models into RAM.
-    engine.start_session(); // Starts accepting audio.
+        const auto wave = read_wave_mono_16k(wav_path);
+        if (wave.samples.empty()) {
+            throw std::runtime_error("WAV contains no samples: " + wav_path.u8string());
+        }
 
-    constexpr std::size_t frame_samples = 1600;
-    for (std::size_t offset = 0; offset < wave.samples.size(); offset += frame_samples) {
-        const auto count = (std::min)(frame_samples, wave.samples.size() - offset);
-        engine.push_audio_f32(wave.samples.data() + offset, count, 16000);
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    }
+        std::cout << "status: loading - Creating sherpa-onnx C API recognizer" << std::endl;
 
-    const std::vector<float> trailing_silence(16000 * 2, 0.0F);
-    engine.push_audio_f32(trailing_silence.data(), trailing_silence.size(), 16000);
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+        SherpaOnnxOnlineRecognizerConfig config;
+        std::memset(&config, 0, sizeof(config));
+        config.feat_config.sample_rate = 16000;
+        config.feat_config.feature_dim = 80;
+        config.model_config.transducer.encoder = encoder.c_str();
+        config.model_config.transducer.decoder = decoder.c_str();
+        config.model_config.transducer.joiner = joiner.c_str();
+        config.model_config.tokens = tokens.c_str();
+        config.model_config.num_threads = 1;
+        config.model_config.provider = "cpu";
+        config.model_config.model_type = env_or_default("ASR_MODEL_TYPE", "zipformer2");
+        config.model_config.debug = env_flag_enabled("ASR_DEBUG") ? 1 : 0;
+        config.decoding_method = "greedy_search";
+        config.max_active_paths = 1;
+        config.enable_endpoint = 1;
+        config.rule1_min_trailing_silence = 2.0F;
+        config.rule2_min_trailing_silence = 0.8F;
+        config.rule3_min_utterance_length = 12.0F;
 
-    engine.stop_session(); // Clears stream state; models remain loaded.
-    engine.unload();       // Releases model RAM.
-    return 0;
+        const SherpaOnnxOnlineRecognizer* recognizer = SherpaOnnxCreateOnlineRecognizer(&config);
+        if (recognizer == nullptr) {
+            throw std::runtime_error("SherpaOnnxCreateOnlineRecognizer returned null");
+        }
+
+        const SherpaOnnxOnlineStream* stream = SherpaOnnxCreateOnlineStream(recognizer);
+        if (stream == nullptr) {
+            SherpaOnnxDestroyOnlineRecognizer(recognizer);
+            throw std::runtime_error("SherpaOnnxCreateOnlineStream returned null");
+        }
+
+        std::cout << "status: streaming - Decoding WAV" << std::endl;
+
+        constexpr int chunk_samples = 3200;
+        for (std::size_t offset = 0; offset < wave.samples.size(); offset += chunk_samples) {
+            const auto count = std::min<std::size_t>(chunk_samples, wave.samples.size() - offset);
+            SherpaOnnxOnlineStreamAcceptWaveform(
+                stream,
+                wave.sample_rate,
+                wave.samples.data() + offset,
+                static_cast<int32_t>(count));
+            while (SherpaOnnxIsOnlineStreamReady(recognizer, stream)) {
+                SherpaOnnxDecodeOnlineStream(recognizer, stream);
+            }
+        }
+
+        SherpaOnnxOnlineStreamInputFinished(stream);
+        while (SherpaOnnxIsOnlineStreamReady(recognizer, stream)) {
+            SherpaOnnxDecodeOnlineStream(recognizer, stream);
+        }
+
+        const SherpaOnnxOnlineRecognizerResult* result = SherpaOnnxGetOnlineStreamResult(recognizer, stream);
+        std::string text = result != nullptr && result->text != nullptr ? result->text : "";
+        if (result != nullptr) {
+            SherpaOnnxDestroyOnlineRecognizerResult(result);
+        }
+
+        SherpaOnnxDestroyOnlineStream(stream);
+        SherpaOnnxDestroyOnlineRecognizer(recognizer);
+
+        std::cout << "final: " << text << std::endl;
+        std::cout << "status: ready - WAV transcription complete" << std::endl;
+        return 0;
     } catch (const std::exception& error) {
         std::cerr << "asr_from_wav failed: " << error.what() << '\n';
         return 1;

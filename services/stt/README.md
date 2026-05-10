@@ -40,5 +40,6 @@ Config:
 - `STT_BINARY`: ASR executable path, for example `services/stt/asr-sdk/build/asr_from_wav`.
 - `STT_MODEL_DIR`: ASR SDK root containing the `models` directory.
 - `STT_SAMPLE_RATE`: default `16000`.
+- `SHERPA_ONNX_ROOT`: sherpa-onnx runtime root containing `include` and `lib`.
 
-The wrapper does not modify the existing C++ SDK. It shells out to the configured binary and extracts `final:` transcript lines from stdout.
+The wrapper does not modify model files. It shells out to the configured binary and extracts `final:` transcript lines from stdout. If `SHERPA_ONNX_ROOT` is set, the wrapper automatically prepends `$SHERPA_ONNX_ROOT/lib` to `LD_LIBRARY_PATH` for the STT subprocess.

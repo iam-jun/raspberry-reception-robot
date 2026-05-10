@@ -74,9 +74,16 @@ class SttService:
             capture_output=True,
             text=True,
             timeout=self.timeout_seconds,
+            env=self._subprocess_env(),
         )
         output = "\n".join(part for part in [completed.stdout, completed.stderr] if part)
         if completed.returncode != 0:
+            if completed.returncode == -11:
+                raise RuntimeError(
+                    "STT command crashed with SIGSEGV. Verify that SHERPA_ONNX_ROOT points to the same sherpa-onnx "
+                    "version used for headers and libraries, and that LD_LIBRARY_PATH includes $SHERPA_ONNX_ROOT/lib.\n"
+                    f"{output.strip()}"
+                )
             raise RuntimeError(f"STT command failed with exit code {completed.returncode}:\n{output.strip()}")
 
         transcript = self._extract_transcript(output)
@@ -155,6 +162,17 @@ class SttService:
             if candidate.exists():
                 return str(candidate.resolve())
         return None
+
+    def _subprocess_env(self) -> dict[str, str]:
+        env = os.environ.copy()
+        sherpa_root = env.get("SHERPA_ONNX_ROOT")
+        if sherpa_root:
+            lib_dir = str((Path(sherpa_root).expanduser() / "lib").resolve())
+            current = env.get("LD_LIBRARY_PATH", "")
+            paths = [path for path in current.split(":") if path]
+            if lib_dir not in paths:
+                env["LD_LIBRARY_PATH"] = ":".join([lib_dir, *paths])
+        return env
 
     def _model_root_ready(self, path: Path) -> bool:
         return (path / "models").exists()

@@ -61,7 +61,7 @@ endif()
 
 if(ASR_ENGINE_BUILD_EXAMPLES)
     add_executable(asr_from_wav examples/asr_from_wav.cpp)
-    target_link_libraries(asr_from_wav PRIVATE asr_engine)
+    target_link_libraries(asr_from_wav PRIVATE ${SHERPA_ONNX_LIBS})
     target_include_directories(asr_from_wav PRIVATE "${SHERPA_ONNX_INCLUDE_DIR}")
 
     add_executable(asr_push_stream examples/asr_push_stream.cpp)
