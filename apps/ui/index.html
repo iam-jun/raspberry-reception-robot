@@ -8,50 +8,84 @@
   </head>
   <body>
     <main class="app-shell">
-      <section class="topbar">
-        <div>
-          <h1>Smart Reception</h1>
-          <p id="statusText">Checking system status...</p>
+      <section class="reception-stage" aria-live="polite">
+        <div class="assistant-scene" aria-hidden="true">
+          <div class="pulse-ring ring-one"></div>
+          <div class="pulse-ring ring-two"></div>
+          <div class="assistant-avatar">
+            <div class="avatar-face">
+              <span class="avatar-eye"></span>
+              <span class="avatar-eye"></span>
+              <span class="avatar-mouth"></span>
+            </div>
+          </div>
+          <div class="voice-meter">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
         </div>
-        <button id="refreshStatusButton" class="icon-button" type="button" aria-label="Refresh status" title="Refresh status">↻</button>
-      </section>
 
-      <section class="status-grid" id="statusGrid" aria-live="polite"></section>
+        <div class="welcome-panel">
+          <div class="topbar">
+            <div>
+              <p class="eyebrow">Reception desk</p>
+              <h1>Smart Reception</h1>
+            </div>
+            <button id="refreshStatusButton" class="icon-button" type="button" aria-label="Refresh status" title="Refresh status">↻</button>
+          </div>
+          <p id="statusText" class="status-line">Checking system status...</p>
+          <p id="assistantState" class="assistant-state">Ready to help.</p>
 
-      <section class="controls">
-        <button id="ingestButton" class="secondary" type="button">Ingest Documents</button>
-        <button id="voiceButton" class="primary" type="button">Ask by Voice</button>
-      </section>
+          <div class="controls">
+            <button id="voiceButton" class="voice-button primary" type="button">
+              <span class="button-icon" aria-hidden="true">●</span>
+              <span class="button-text">Talk</span>
+            </button>
+            <button id="askButton" class="primary ask-inline-button" type="button">Send</button>
+          </div>
 
-      <section class="ask-panel">
-        <label for="questionInput">Question</label>
-        <div class="ask-row">
-          <textarea id="questionInput" rows="3" placeholder="Type a question or enter Vietnamese text..."></textarea>
-          <button id="askButton" class="primary" type="button">Ask</button>
+          <div class="ask-panel">
+            <label for="questionInput">Question</label>
+            <textarea id="questionInput" rows="3" placeholder="Ask for directions, visitor information, or type Vietnamese here..."></textarea>
+          </div>
         </div>
       </section>
 
-      <section class="result-layout">
-        <article class="result-panel">
-          <h2>Conversation</h2>
-          <dl>
-            <dt>Transcription</dt>
-            <dd id="transcriptionText">-</dd>
-            <dt>Question</dt>
-            <dd id="questionText">-</dd>
-            <dt>Answer</dt>
-            <dd id="answerText">-</dd>
-          </dl>
+      <section class="conversation-panel">
+        <div class="chat-card visitor-card">
+          <span class="chat-label">Visitor</span>
+          <p id="questionText">Tap Talk or type a question.</p>
+        </div>
+        <div class="chat-card live-card">
+          <span class="chat-label">Live transcript</span>
+          <p id="transcriptionText">Waiting...</p>
+        </div>
+        <div class="chat-card assistant-card">
+          <span class="chat-label">Reception</span>
+          <p id="answerText">Hello, I can help with information from the reception documents.</p>
           <audio id="answerAudio" controls hidden></audio>
+        </div>
+      </section>
+
+      <section class="operations-layout">
+        <article class="ops-panel">
+          <div class="panel-heading">
+            <h2>System</h2>
+            <button id="ingestButton" class="secondary small-button" type="button">Ingest Documents</button>
+          </div>
+          <section class="status-grid" id="statusGrid" aria-live="polite"></section>
         </article>
 
-        <article class="result-panel">
+        <article class="ops-panel">
           <h2>Context</h2>
           <div id="sourcesList" class="sources-list">No sources yet.</div>
         </article>
 
-        <article class="result-panel">
-          <h2>Customer Emotion</h2>
+        <article class="ops-panel">
+          <h2>Visitor</h2>
           <div id="emotionText" class="emotion">unknown</div>
           <p id="emotionDetail">No camera sample yet.</p>
         </article>

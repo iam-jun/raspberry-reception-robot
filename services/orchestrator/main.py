@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import time
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -107,6 +108,50 @@ async def voice_ask(request: Request, duration_seconds: int = 5) -> VoiceAskResp
         return VoiceAskResponse(**payload, transcription=transcription, recorded_audio_path=audio_path)
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error)) from error
+
+
+@app.websocket("/voice/stream")
+async def voice_stream(websocket: WebSocket) -> None:
+    await websocket.accept()
+    session = None
+    try:
+        session = await stt_service.start_streaming()
+        
+        async def read_from_stt() -> None:
+            assert session is not None
+            while True:
+                line = await session.read_line()
+                if not line:
+                    break
+                if line.startswith("partial: ") or line.startswith("final: "):
+                    parts = line.split(": ", 1)
+                    event_type = parts[0]
+                    text = parts[1] if len(parts) > 1 else ""
+                    try:
+                        await websocket.send_json({"type": event_type, "text": text})
+                    except Exception:
+                        break
+
+        stt_reader_task = asyncio.create_task(read_from_stt())
+
+        try:
+            while True:
+                data = await websocket.receive_text()
+                if data == "stop":
+                    break
+        except WebSocketDisconnect:
+            pass
+        finally:
+            await stt_reader_task
+    except Exception as error:
+        try:
+            await websocket.send_json({"type": "error", "error": str(error)})
+            await websocket.close(code=1011)
+        except Exception:
+            pass
+    finally:
+        if session:
+            await session.close()
 
 
 @app.post("/documents/ingest")

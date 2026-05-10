@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 import shutil
@@ -19,6 +20,45 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 STT_DIR = Path(__file__).resolve().parent
 ASR_SDK_DIR = STT_DIR / "asr-sdk"
 DEFAULT_AUDIO_DIR = REPO_ROOT / "storage" / "audio"
+
+
+class StreamingSession:
+    def __init__(self, process: asyncio.subprocess.Process, record_process: asyncio.subprocess.Process | None = None, pipe_task: asyncio.Task | None = None) -> None:
+        self.process = process
+        self.record_process = record_process
+        self.pipe_task = pipe_task
+
+    async def read_line(self) -> str:
+        if self.process.stdout and self.process.returncode is None:
+            line = await self.process.stdout.readline()
+            return line.decode("utf-8").strip() if line else ""
+        return ""
+
+    async def close(self) -> None:
+        if self.pipe_task and not self.pipe_task.done():
+            self.pipe_task.cancel()
+
+        if self.record_process and self.record_process.returncode is None:
+            self.record_process.terminate()
+            try:
+                await asyncio.wait_for(self.record_process.wait(), timeout=1.0)
+            except asyncio.TimeoutError:
+                self.record_process.kill()
+                await self.record_process.wait()
+
+        if self.process.stdin:
+            try:
+                self.process.stdin.close()
+                await self.process.stdin.wait_closed()
+            except Exception:
+                pass
+
+        if self.process.returncode is None:
+            try:
+                await asyncio.wait_for(self.process.wait(), timeout=2.0)
+            except asyncio.TimeoutError:
+                self.process.kill()
+                await self.process.wait()
 
 
 class SttService:
@@ -46,6 +86,65 @@ class SttService:
             "model_ready": model_ready,
             "sample_rate": self.sample_rate,
         }
+
+    async def start_streaming(self) -> StreamingSession:
+        if not self.binary:
+            raise RuntimeError("STT_BINARY is not configured.")
+        binary_dir = Path(self.binary).parent
+        streaming_binary = binary_dir / "asr_push_stream"
+        if not streaming_binary.exists():
+            raise FileNotFoundError(f"Streaming binary not found: {streaming_binary}")
+        if not self._model_root_ready(self.model_dir):
+            raise FileNotFoundError(f"STT model root is not ready: {self.model_dir}")
+
+        command = [str(streaming_binary), str(self.model_dir)]
+        asr_process = await asyncio.create_subprocess_exec(
+            *command,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+            env=self._subprocess_env(),
+        )
+
+        arecord = shutil.which("arecord")
+        if not arecord:
+            asr_process.kill()
+            raise RuntimeError("arecord is required for live server-side streaming.")
+
+        record_cmd = [
+            arecord,
+            "-f", "S16_LE",
+            "-r", str(self.sample_rate),
+            "-c", "1",
+            "-t", "raw"
+        ]
+        record_process = await asyncio.create_subprocess_exec(
+            *record_cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+
+        async def _pipe_audio() -> None:
+            if not record_process.stdout or not asr_process.stdin:
+                return
+            try:
+                while True:
+                    chunk = await record_process.stdout.read(4096)
+                    if not chunk:
+                        break
+                    asr_process.stdin.write(chunk)
+                    await asr_process.stdin.drain()
+            except Exception:
+                pass
+            finally:
+                try:
+                    asr_process.stdin.close()
+                except Exception:
+                    pass
+
+        pipe_task = asyncio.create_task(_pipe_audio())
+
+        return StreamingSession(asr_process, record_process, pipe_task)
 
     def transcribe_wav(self, path: str | Path) -> str:
         wav_path = self._resolve_path(path)

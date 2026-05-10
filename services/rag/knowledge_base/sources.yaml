@@ -1,0 +1,9 @@
+sources:
+  - id: uit_admission_faq
+    name: "Câu hỏi thường gặp - Tuyển sinh UIT"
+    url: "https://tuyensinh.uit.edu.vn/cau-hoi-thuong-gap"
+    source_type: "public_website"
+    domain: "UIT tuyển sinh"
+    language: "vi"
+    enabled: true
+

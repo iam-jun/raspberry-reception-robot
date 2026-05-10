@@ -1,6 +1,9 @@
+fastapi
+uvicorn
 pydantic
-python-dotenv
+requests
+beautifulsoup4
+PyYAML
+fastembed
 openai
-numpy
-chromadb
-pypdf
+pytest

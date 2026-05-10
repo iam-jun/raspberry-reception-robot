@@ -15,7 +15,7 @@ Main folders:
 - `apps/ui`: touch-screen web UI served by FastAPI.
 - `services/orchestrator`: FastAPI workflow API.
 - `services/stt`: sherpa-onnx STT wrapper and existing `asr-sdk`.
-- `services/rag`: document loading, chunking, retrieval, and answer generation.
+- `services/rag`: UIT admission crawling, Markdown cleaning, chunking, FastEmbed retrieval, and answer generation.
 - `services/tts`: OpenAI TTS audio generation.
 - `services/vision`: camera capture, face detection, and MVP emotion fallback.
 - `documents/source`: source `.txt`, `.md`, and `.pdf` files for RAG.
@@ -60,7 +60,7 @@ Important values:
 - `VISION_ENABLED`: set `false` to disable camera sampling.
 - `CAMERA_INDEX`: OpenCV camera index, default `0`.
 
-Without `OPENAI_API_KEY`, the app still starts and can ingest/retrieve documents with a local fallback embedding. It will return an explicit message instead of generating a final OpenAI answer or TTS file.
+Without `OPENAI_API_KEY`, the app still starts and can ingest/retrieve documents with FastEmbed or the local fallback embedding. It will return an explicit message instead of generating a final OpenAI answer or TTS file.
 
 ## Build STT SDK
 
@@ -101,7 +101,7 @@ You can also ingest directly:
 python3 services/rag/ingest.py
 ```
 
-The vector index is written under `storage/vector_db`. ChromaDB is used when available; a small JSON index is also persisted as a fallback.
+The RAG service under `services/rag` writes its UIT admission index under `services/rag/knowledge_base/index`. The current Pi-friendly path uses FastEmbed with a local JSON index.
 
 ## Run Orchestrator and UI
 
@@ -163,3 +163,8 @@ curl http://127.0.0.1:8000/vision/emotion
 - OpenAI chat answer generation is required for final natural-language answers.
 - Emotion detection is intentionally lightweight: it detects face presence and returns `neutral` for detected faces until a small real emotion model is added.
 - Speaker playback is handled by the browser audio control in the MVP; system-level speaker playback can be added later.
+
+## Engineering Notes
+
+- [Voice STT challenges and fixes](docs/voice-stt-challenges.md): documents the `el` silence hallucination, TTS feedback loop, and the guardrails added to resolve them.
+- [RAG pipeline design, challenges, and fixes](docs/rag-pipeline-challenges.md): documents the first RAG solution, implementation problems, and the Raspberry Pi-friendly fixes.

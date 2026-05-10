@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ORCH_DIR="${ROOT_DIR}/services/orchestrator"
 
 if [ -f "${ROOT_DIR}/.env" ]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "${ROOT_DIR}/.env"
-  set +a
+  while IFS='=' read -r key value; do
+    case "${key}" in
+      ""|\#*) continue ;;
+    esac
+    if [[ "${key}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && [ -z "${!key+x}" ]; then
+      export "${key}=${value}"
+    fi
+  done < "${ROOT_DIR}/.env"
 fi
 
 mkdir -p \

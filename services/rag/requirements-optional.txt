@@ -1,0 +1,5 @@
+# Optional dependencies for experiments only.
+#
+# The Raspberry Pi 5 path uses FastEmbed from requirements.txt plus the local
+# JSON vector index. Keep this file empty unless a future experiment needs extra
+# packages.
