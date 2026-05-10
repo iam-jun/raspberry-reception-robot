@@ -60,10 +60,9 @@ The service exposes:
 - `POST /retrieve`
 - `GET /sources`
 
-For answer generation, the RAG engine supports two modes:
+For answer generation, the RAG engine uses a fully local composer. No external LLM API is called by the default `/ask` flow.
 
-- Local extractive mode: no LLM is required. The robot returns concise text from the best retrieved chunks.
-- OpenAI mode: if `OPENAI_API_KEY` is available, the robot asks OpenAI to generate a cleaner Vietnamese answer using only retrieved context.
+The composer treats retrieved chunks as evidence only. It cleans Markdown, splits text into candidate lines/sentences, scores those candidates against the user question, and applies simple Vietnamese templates for common UIT admission intents.
 
 The grounding rule is strict: if the indexed documents do not contain the answer, the robot must return:
 
@@ -124,7 +123,7 @@ Base install:
 services/rag/requirements.txt
 ```
 
-This contains the crawler, API, FastEmbed, OpenAI client, and test dependencies.
+This contains the crawler, API, FastEmbed, and test dependencies.
 
 The code already supports graceful fallback:
 
@@ -303,7 +302,7 @@ The current implementation is intentionally MVP-oriented:
 - It only crawls configured source URLs.
 - It prioritizes readable Markdown and simple scripts over complex indexing infrastructure.
 - FastEmbed gives better semantic retrieval than the hash fallback while staying practical on Raspberry Pi 5.
-- The OpenAI answer mode improves fluency, but the local extractive mode is kept for offline demos and tests.
+- The local answer composer is more stable for Raspberry Pi demos than an external LLM dependency, but it is intentionally simpler than full natural-language generation.
 
 ## Recommended Next Steps
 

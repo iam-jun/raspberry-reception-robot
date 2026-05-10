@@ -34,10 +34,20 @@
               <p class="eyebrow">Reception desk</p>
               <h1>Smart Reception</h1>
             </div>
-            <button id="refreshStatusButton" class="icon-button" type="button" aria-label="Refresh status" title="Refresh status">↻</button>
+            <div class="topbar-actions">
+              <button id="newConversationButton" class="icon-button" type="button" aria-label="New conversation" title="New conversation">＋</button>
+              <button id="refreshStatusButton" class="icon-button" type="button" aria-label="Refresh status" title="Refresh status">↻</button>
+            </div>
           </div>
           <p id="statusText" class="status-line">Checking system status...</p>
           <p id="assistantState" class="assistant-state">Ready to help.</p>
+
+          <div class="ask-panel">
+            <label for="questionInput">Question</label>
+            <textarea id="questionInput" rows="3" placeholder="Ask about UIT admission information..."></textarea>
+          </div>
+
+          <div id="suggestionPanel" class="suggestion-panel" aria-label="Suggested questions"></div>
 
           <div class="controls">
             <button id="voiceButton" class="voice-button primary" type="button">
@@ -46,18 +56,13 @@
             </button>
             <button id="askButton" class="primary ask-inline-button" type="button">Send</button>
           </div>
-
-          <div class="ask-panel">
-            <label for="questionInput">Question</label>
-            <textarea id="questionInput" rows="3" placeholder="Ask for directions, visitor information, or type Vietnamese here..."></textarea>
-          </div>
         </div>
       </section>
 
       <section class="conversation-panel">
         <div class="chat-card visitor-card">
           <span class="chat-label">Visitor</span>
-          <p id="questionText">Tap Talk or type a question.</p>
+          <p id="questionText">Tap Talk or choose a question.</p>
         </div>
         <div class="chat-card live-card">
           <span class="chat-label">Live transcript</span>
@@ -65,7 +70,7 @@
         </div>
         <div class="chat-card assistant-card">
           <span class="chat-label">Reception</span>
-          <p id="answerText">Hello, I can help with information from the reception documents.</p>
+          <p id="answerText">Hello, I can help with UIT admission information.</p>
           <audio id="answerAudio" controls hidden></audio>
         </div>
       </section>

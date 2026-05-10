@@ -19,7 +19,6 @@ class RagSettings:
         "RAG_EMBEDDING_MODEL",
         "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
     )
-    openai_model: str = os.getenv("RAG_OPENAI_MODEL", os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"))
     min_relevance_score: float = float(os.getenv("RAG_MIN_RELEVANCE_SCORE", "0.15"))
 
 

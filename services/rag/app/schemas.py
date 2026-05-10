@@ -27,10 +27,10 @@ class SourcePreview(BaseModel):
 class AskResponse(BaseModel):
     question: str
     answer: str
+    confidence: str
     sources: list[SourcePreview]
 
 
 class RetrieveResponse(BaseModel):
     question: str
     chunks: list[dict[str, Any]]
-

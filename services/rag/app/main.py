@@ -28,6 +28,7 @@ def ask(request: AskRequest) -> AskResponse:
     return AskResponse(
         question=question,
         answer=result["answer"],
+        confidence=result["confidence"],
         sources=[_source_preview(chunk) for chunk in result["chunks"]],
     )
 
@@ -61,13 +62,15 @@ def sources() -> dict[str, Any]:
 
 def _source_preview(chunk: dict[str, Any]) -> SourcePreview:
     metadata = chunk.get("metadata", {})
-    text = chunk.get("text", "")
+    text = chunk.get("relevant_preview") or chunk.get("text", "")
+    preview = " ".join(str(text).split())
+    if len(preview) > 180:
+        preview = preview[:180].rsplit(" ", 1)[0].rstrip(".,;") + "..."
     return SourcePreview(
         source_id=metadata.get("source_id", ""),
         title=metadata.get("title"),
         source_url=metadata.get("source_url"),
         chunk_id=chunk.get("chunk_id", ""),
         score=float(chunk.get("score", 0.0)),
-        preview=(text[:260] + "...") if len(text) > 260 else text,
+        preview=preview,
     )
-

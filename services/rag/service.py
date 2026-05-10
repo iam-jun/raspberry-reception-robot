@@ -41,7 +41,6 @@ class RagService:
             "document_source_dir": str(MARKDOWN_DIR),
             "vector_dir": str(INDEX_DIR),
             "documents": len(self.list_documents()),
-            "openai_configured": False,
             "vector_backend": "fastembed_json",
         }
 

@@ -1,6 +1,7 @@
 const statusText = document.querySelector("#statusText");
 const statusGrid = document.querySelector("#statusGrid");
 const refreshStatusButton = document.querySelector("#refreshStatusButton");
+const newConversationButton = document.querySelector("#newConversationButton");
 const ingestButton = document.querySelector("#ingestButton");
 const voiceButton = document.querySelector("#voiceButton");
 const askButton = document.querySelector("#askButton");
@@ -13,7 +14,17 @@ const emotionText = document.querySelector("#emotionText");
 const emotionDetail = document.querySelector("#emotionDetail");
 const answerAudio = document.querySelector("#answerAudio");
 const assistantState = document.querySelector("#assistantState");
+const suggestionPanel = document.querySelector("#suggestionPanel");
 const toast = document.querySelector("#toast");
+
+const starterQuestions = [
+  "UIT là trường công lập hay dân lập?",
+  "Sinh viên UIT học ở cơ sở nào?",
+  "Điều kiện chuyển ngành ở UIT là gì?",
+  "Mã trường UIT là gì?",
+  "Ký túc xá cách trường bao xa?",
+  "Có những tuyến xe bus nào đến ĐHQG-HCM?",
+];
 
 const componentLabels = {
   orchestrator: "Orchestrator",
@@ -64,6 +75,44 @@ function showToast(message, timeout = 3600) {
   showToast.timer = window.setTimeout(() => {
     toast.hidden = true;
   }, timeout);
+}
+
+function renderStarterQuestions() {
+  suggestionPanel.innerHTML = "";
+  for (const question of starterQuestions) {
+    const button = document.createElement("button");
+    button.className = "suggestion-button";
+    button.type = "button";
+    button.textContent = question;
+    button.addEventListener("click", () => {
+      questionInput.value = question;
+      hideStarterQuestions();
+      askTypedQuestion();
+    });
+    suggestionPanel.appendChild(button);
+  }
+}
+
+function hideStarterQuestions() {
+  suggestionPanel.hidden = true;
+}
+
+function showStarterQuestions() {
+  suggestionPanel.hidden = false;
+}
+
+function resetConversation() {
+  stopRecording(false);
+  answerAudio.pause();
+  answerAudio.removeAttribute("src");
+  answerAudio.hidden = true;
+  questionInput.value = "";
+  transcriptionText.textContent = "Waiting...";
+  questionText.textContent = "Tap Talk or choose a question.";
+  answerText.textContent = "Hello, I can help with UIT admission information.";
+  renderSources([]);
+  showStarterQuestions();
+  setInteractionState("idle", "Ready to help.");
 }
 
 async function api(path, options = {}) {
@@ -202,6 +251,7 @@ async function askTypedQuestion(preserveTranscript = false) {
     return;
   }
 
+  hideStarterQuestions();
   setBusy(askButton, true, "Asking...");
   setInteractionState("thinking", "Checking reception information.");
   questionText.textContent = question;
@@ -264,6 +314,7 @@ async function askByVoice() {
     return;
   }
 
+  hideStarterQuestions();
   setBusy(voiceButton, true, "Stop Listening...");
   setInteractionState("listening", "I am listening.");
   transcriptionText.textContent = "Server is recording...";
@@ -337,6 +388,7 @@ answerAudio.addEventListener("pause", () => {
 });
 
 refreshStatusButton.addEventListener("click", refreshStatus);
+newConversationButton.addEventListener("click", resetConversation);
 ingestButton.addEventListener("click", ingestDocuments);
 askButton.addEventListener("click", () => askTypedQuestion());
 voiceButton.addEventListener("click", askByVoice);
@@ -346,4 +398,5 @@ questionInput.addEventListener("keydown", (event) => {
   }
 });
 
+renderStarterQuestions();
 refreshStatus();
