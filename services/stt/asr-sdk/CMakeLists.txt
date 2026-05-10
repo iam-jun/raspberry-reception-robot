@@ -14,6 +14,18 @@ endif()
 
 set(SHERPA_ONNX_INCLUDE_DIR "${SHERPA_ONNX_ROOT}/include")
 set(SHERPA_ONNX_LIB_DIR "${SHERPA_ONNX_ROOT}/lib")
+set(SHERPA_ONNX_CXX_API_HEADER "${SHERPA_ONNX_INCLUDE_DIR}/sherpa-onnx/c-api/cxx-api.h")
+
+if(NOT EXISTS "${SHERPA_ONNX_CXX_API_HEADER}")
+    message(FATAL_ERROR
+            "sherpa-onnx C++ API header not found: ${SHERPA_ONNX_CXX_API_HEADER}\n"
+            "Set SHERPA_ONNX_ROOT to the installed/prebuilt sherpa-onnx runtime root, not to a placeholder path.\n"
+            "Expected layout:\n"
+            "  <root>/include/sherpa-onnx/c-api/cxx-api.h\n"
+            "  <root>/lib/libsherpa-onnx-cxx-api.so\n"
+            "  <root>/lib/libsherpa-onnx-c-api.so\n"
+            "  <root>/lib/libonnxruntime.so")
+endif()
 
 if(WIN32)
     set(SHERPA_ONNX_LIBS

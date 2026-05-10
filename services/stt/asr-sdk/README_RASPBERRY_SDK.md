@@ -89,20 +89,33 @@ Install/download a Linux ARM64 sherpa-onnx runtime that contains headers and lib
 <sherpa-onnx-root>/lib/libonnxruntime.so
 ```
 
+Do not pass the literal placeholder `/path/to/sherpa-onnx-linux-aarch64`.
+First verify the runtime root:
+
+```bash
+SHERPA_ONNX_ROOT=/absolute/path/to/sherpa-onnx-linux-aarch64-shared
+test -f "$SHERPA_ONNX_ROOT/include/sherpa-onnx/c-api/cxx-api.h"
+test -f "$SHERPA_ONNX_ROOT/lib/libsherpa-onnx-cxx-api.so"
+test -f "$SHERPA_ONNX_ROOT/lib/libsherpa-onnx-c-api.so"
+test -f "$SHERPA_ONNX_ROOT/lib/libonnxruntime.so"
+```
+
 Then build:
 
 ```bash
-cmake -S sdk/asr -B build-asr-sdk \
+rm -rf build
+cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Release \
-  -DSHERPA_ONNX_ROOT=/path/to/sherpa-onnx-linux-aarch64 \
+  -DSHERPA_ONNX_ROOT="$SHERPA_ONNX_ROOT" \
   -DASR_ENGINE_BUILD_EXAMPLES=ON
-cmake --build build-asr-sdk
+cmake --build build -j4
 ```
 
 Run WAV example:
 
 ```bash
-./build-asr-sdk/asr_from_wav /opt/asr-sdk /opt/asr-sdk/models/sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10/test_wavs/en.wav
+LD_LIBRARY_PATH="$SHERPA_ONNX_ROOT/lib:${LD_LIBRARY_PATH:-}" \
+  ./build/asr_from_wav "$PWD" models/sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10/test_wavs/en.wav
 ```
 
 ## Threading Notes
