@@ -41,3 +41,8 @@ storage/vector_db/*
 Thumbs.db
 .idea/
 .vscode/
+
+# Third-party SDKs
+services/stt/asr-sdk/third_party/
+
+.env

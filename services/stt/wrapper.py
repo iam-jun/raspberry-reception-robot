@@ -87,8 +87,6 @@ class SttService:
             raise RuntimeError(f"STT command failed with exit code {completed.returncode}:\n{output.strip()}")
 
         transcript = self._extract_transcript(output)
-        if not transcript:
-            raise RuntimeError(f"STT completed but no transcript was found in output:\n{output.strip()}")
         return transcript
 
     def record_audio(self, duration_seconds: int = 5, output_path: str | Path | None = None) -> str:
